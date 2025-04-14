@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Курс - Прогресс</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: var(--bs-gray-900);
+            color: var(--bs-light);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif;
+            padding-bottom: 70px;
+        }
+        .card {
+            background-color: var(--bs-gray-800);
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: var(--bs-gray-700);
+            border-bottom: none;
+            border-top-left-radius: 10px !important;
+            border-top-right-radius: 10px !important;
+        }
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+            background-color: var(--bs-gray-700);
+        }
+        .progress-bar {
+            background-color: var(--bs-info);
+        }
+        .module-item {
+            border-bottom: 1px solid var(--bs-gray-700);
+            padding: 12px 0;
+        }
+        .module-item:last-child {
+            border-bottom: none;
+        }
+        .module-completed {
+            color: var(--bs-info);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .telegram-app-main {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px 15px;
+        }
+        .completed-badge {
+            background-color: var(--bs-info);
+            color: var(--bs-dark);
+        }
+        .progress-percentage {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--bs-info);
+            margin-bottom: 0;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="telegram-app-main">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="mb-4">Мой прогресс по курсу</h1>
+                    <div id="loadingSpinner" class="d-flex justify-content-center my-5">
+                        <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="content" class="d-none">
+                <!-- Карточка с общим прогрессом -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Общий прогресс</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <h2 class="progress-percentage" id="progressPercentage">0%</h2>
+                                <p class="text-muted">курса завершено</p>
+                                <div class="progress mt-3">
+                                    <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Графики -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Визуализация прогресса</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="progressChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Список модулей -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="header-container">
+                                    <h5 class="mb-0">Модули курса</h5>
+                                    <span class="badge bg-secondary" id="modulesCompletedBadge">0/0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="modulesList" class="list-group list-group-flush">
+                                    <!-- Список модулей будет добавлен динамически -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Домашние задания -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Домашние задания</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="homeworkList" class="list-group list-group-flush">
+                                    <!-- Список домашних заданий будет добавлен динамически -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Инициализация Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.hide();
+        
+        // Получаем идентификатор пользователя из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id');
+        
+        // Функция для загрузки данных пользователя
+        async function loadUserData() {
+            if (!userId) {
+                alert('Ошибка: идентификатор пользователя не указан');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/mini-app/user-data?user_id=${userId}`);
+                if (!response.ok) {
+                    throw new Error('Ошибка при получении данных');
+                }
+                
+                const data = await response.json();
+                renderUserData(data);
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Не удалось загрузить данные о прогрессе. Пожалуйста, попробуйте позже.');
+            }
+        }
+        
+        // Функция для отображения данных пользователя
+        function renderUserData(data) {
+            // Скрываем спиннер и показываем контент
+            document.getElementById('loadingSpinner').classList.add('d-none');
+            document.getElementById('content').classList.remove('d-none');
+            
+            // Обновляем общий прогресс
+            const progressPercentage = data.progress.percentage;
+            document.getElementById('progressPercentage').textContent = `${progressPercentage}%`;
+            document.getElementById('progressBar').style.width = `${progressPercentage}%`;
+            document.getElementById('progressBar').setAttribute('aria-valuenow', progressPercentage);
+            
+            // Обновляем счетчик завершенных модулей
+            const completedModules = data.progress.modules.filter(m => m.completed).length;
+            const totalModules = data.progress.modules.length;
+            document.getElementById('modulesCompletedBadge').textContent = `${completedModules}/${totalModules}`;
+            
+            // Обновляем список модулей
+            const modulesList = document.getElementById('modulesList');
+            modulesList.innerHTML = '';
+            
+            data.progress.modules.forEach(module => {
+                const moduleItem = document.createElement('div');
+                moduleItem.className = 'module-item px-3 py-2';
+                
+                const moduleContent = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">${module.name}</h6>
+                        </div>
+                        <div>
+                            ${module.completed ? 
+                              '<span class="badge completed-badge">Завершен</span>' : 
+                              '<span class="badge bg-secondary">В процессе</span>'}
+                        </div>
+                    </div>
+                `;
+                
+                moduleItem.innerHTML = moduleContent;
+                modulesList.appendChild(moduleItem);
+            });
+            
+            // Обновляем список домашних заданий
+            const homeworkList = document.getElementById('homeworkList');
+            homeworkList.innerHTML = '';
+            
+            data.homework.forEach(hw => {
+                const hwItem = document.createElement('div');
+                hwItem.className = 'module-item px-3 py-2';
+                
+                const hwContent = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">${hw.name}</h6>
+                        </div>
+                        <div>
+                            <span class="badge bg-info">${hw.submissions_count} решений</span>
+                        </div>
+                    </div>
+                `;
+                
+                hwItem.innerHTML = hwContent;
+                homeworkList.appendChild(hwItem);
+            });
+            
+            // Создаем график прогресса
+            createProgressChart(data.progress.modules);
+        }
+        
+        // Функция для создания графика прогресса
+        function createProgressChart(modules) {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            const labels = modules.map(m => m.name);
+            const completedData = modules.map(m => m.completed ? 1 : 0);
+            const pendingData = modules.map(m => m.completed ? 0 : 1);
+            
+            const progressChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Завершено',
+                            data: completedData,
+                            backgroundColor: '#0dcaf0', // info color
+                            borderColor: '#0dcaf0',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'В процессе',
+                            data: pendingData,
+                            backgroundColor: '#6c757d', // secondary color
+                            borderColor: '#6c757d',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f8f9fa'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Загрузка данных при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadUserData);
+    </script>
+</body>
+</html>
