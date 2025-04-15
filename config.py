@@ -1,7 +1,7 @@
 import os
 
 # Bot configuration
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TOKEN = os.getenv('BOT_TOKEN')
 
 # Database configuration
 DATABASE_URL = 'sqlite:///course_bot.db'
