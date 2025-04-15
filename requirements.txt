@@ -2,3 +2,4 @@ flask
 gunicorn
 aiogram
 flask_sqlalchemy
+pyTelegramBotAPI
