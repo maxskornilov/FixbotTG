@@ -465,3 +465,10 @@ def login():
             flash('Неверное имя пользователя или пароль', 'danger')
 
     return render_template('login.html')
+@app.route('/codes')
+def codes():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    from config import ACCESS_CODES
+    return render_template('codes.html', codes=ACCESS_CODES)
