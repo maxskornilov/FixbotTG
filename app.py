@@ -446,25 +446,6 @@ def mini_app():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
 from flask import request  # добавь к остальным импортам
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-
-        # Замени эти данные на свои
-        ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
-        ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'adminpass')
-
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            session['logged_in'] = True
-            flash('Вы успешно вошли в систему!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Неверное имя пользователя или пароль', 'danger')
-
-    return render_template('login.html')
 @app.route('/codes')
 def codes():
     if not session.get('logged_in'):
