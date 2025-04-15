@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Коды доступа</title>
+</head>
+<body>
+    <h2>Коды доступа по тарифам</h2>
+
+    {% for tariff, items in codes.items() %}
+        <h3>{{ tariff|capitalize }}</h3>
+        <ul>
+            {% for code in items %}
+                <li>{{ code }}</li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+
+    <a href="/dashboard">Назад</a>
+</body>
+</html>
